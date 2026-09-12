@@ -134,9 +134,8 @@ def register():
         return jsonify({"error": "Missing JSON body"}), 400
     
     username = (data.get("username") or "").strip()
-    email = (data.get("email"or "").strip())
-    password = (data.get("password"or "").strip())
-   
+    email = (data.get("email") or "").strip()
+    password = (data.get("password") or "").strip()
     if not username or not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
 
@@ -151,12 +150,12 @@ def register():
         db.commit()
     except sqlite3.IntegrityError:
         return jsonify({"error": "username or email already in use"}), 409
-
-@app.post("/login")
-def login():
-    data = request.get_json()
-    if data is None:
-        return jsonify({"error": "Missing JSON body"}), 400
+    new_id = cursor.lastrowid
+    return jsonify({
+        "id": new_id,
+        "username": username,
+        "email": email,
+    }), 201
 
     username = (data.get("username") or "").strip()
     password = (data.get("password") or "").strip()
@@ -189,6 +188,33 @@ def login():
         "email": email,
     }), 201
 
+@app.post("/login")
+def login():
+    data = request.get_json()
+    if data is None:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
+
+    if not username or not password:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    db = get_db()
+    user = db.execute(
+        "SELECT * FROM users WHERE username = ?",
+        (username,),
+    ).fetchone()
+
+    if user is None:
+        # unknown username
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    if not check_password_hash(user["password_hash"], password):
+        # wrong password
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    return jsonify({"message": "Login successful"}), 200
 
 if __name__ == "__main__":
     app.run(port=5001,debug=True)
