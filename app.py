@@ -6,7 +6,7 @@ That is the point: you will add both, lesson by lesson, in Units 2 and 3.
 """
 
 import sqlite3
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, g, jsonify, request
 
 DATABASE = "recipes.db"
@@ -152,6 +152,35 @@ def register():
     except sqlite3.IntegrityError:
         return jsonify({"error": "username or email already in use"}), 409
 
+@app.post("/login")
+def login():
+    data = request.get_json()
+    if data is None:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    username = (data.get("username") or "").strip()
+    password = (data.get("password") or "").strip()
+
+    if not username or not password:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    db = get_db()
+    cursor = db.execute(
+        "SELECT id, username, password_hash FROM users WHERE username = ?",
+        (username,),
+    )
+    user = cursor.fetchone()
+
+    # If user not found OR password doesn't match → same generic 401
+    if user is None or not check_password_hash(user["password_hash"], password):
+        return jsonify({"error": "Invalid username or password"}), 401
+
+    # Success: return safe identity (no password or hash)
+    return jsonify({
+        "id": user["id"],
+        "username": user["username"],
+    }), 200
+
     new_id = cursor.lastrowid
 
     return jsonify({
@@ -160,5 +189,6 @@ def register():
         "email": email,
     }), 201
 
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(port=5001,debug=True)
