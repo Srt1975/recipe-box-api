@@ -4,15 +4,22 @@ A working Flask + SQLite CRUD API for recipes. It stores data perfectly —
 and it trusts everyone. There is no authentication and no authorization yet.
 That is the point: you will add both, lesson by lesson, in Units 2 and 3.
 """
-
+import os
 import sqlite3
+from datetime import datetime, timedelta
+import jwt
+from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, g, jsonify, request
 
-DATABASE = "recipes.db"
+load_dotenv()  # load .env
 
 app = Flask(__name__)
-
+app.config["JWT_SECRET"] = os.getenv("JWT_SECRET")
+print("JWT_SECRET from env:", repr(app.config["JWT_SECRET"]))  # debug
+JWT_SECRET = app.config["JWT_SECRET"]
+JWT_ALGORITHM = "HS256"  # same as you used when encoding
+DATABASE = "recipes.db"
 
 def get_db():
     if "db" not in g:
@@ -62,6 +69,23 @@ def get_recipe(recipe_id):
 
 @app.post("/recipes")
 def create_recipe():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Missing or invalid Authorization header"}), 401
+
+    token = auth_header.split(" ", 1)[1]
+
+    try:
+        claims = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        return jsonify({"error":"Token has expired.  Please log in again."}), 401
+    except jwt.InvalidTokenError as e:
+        print("JWT decode error:", repr(e))
+        return jsonify({"error": "Invalid or expired token"}), 401
+    
+    user_id = claims["sub"]  # still a string, that’s fine for now
+    print("Authenticated user id:", user_id)
+    # claims now holds the verified identity
     data = request.get_json(silent=True)
     if not data or not data.get("title") or not data.get("ingredients"):
         return jsonify({"error": "title and ingredients are required"}), 400
@@ -214,7 +238,22 @@ def login():
         # wrong password
         return jsonify({"error": "Invalid credentials"}), 401
 
-    return jsonify({"message": "Login successful"}), 200
+    # At this point, credentials are valid and we know who the user is
+    payload = {
+        "sub": str(user["id"]),               # authenticated user ID from DB
+        "username": user["username"],    # optional, still from DB
+        "exp": datetime.utcnow() + timedelta(hours=1),
+    }
+
+    token = jwt.encode(payload, app.config["JWT_SECRET"], algorithm="HS256")
+    
+    return jsonify({
+        "token": token,
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+        }
+    }), 200
 
 if __name__ == "__main__":
     app.run(port=5001,debug=True)
