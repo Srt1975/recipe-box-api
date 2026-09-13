@@ -85,6 +85,7 @@ def create_recipe():
     
     user_id = claims["sub"]  # still a string, that’s fine for now
     print("Authenticated user id:", user_id)
+    role = claims.get("role", "user")
     # claims now holds the verified identity
     data = request.get_json(silent=True)
     if not data or not data.get("title") or not data.get("ingredients"):
@@ -128,6 +129,7 @@ def update_recipe(recipe_id):
         return jsonify({"error": "Invalid or expired token"}), 401
 
     user_id = claims["sub"]
+    role = claims.get("role", "user")  # 👈 pull role from verified claims
 
     db = get_db()
     row = db.execute(
@@ -138,12 +140,15 @@ def update_recipe(recipe_id):
     if row is None:
         return jsonify({"error": "recipe not found"}), 404
 
-    if row["owner_id"] != int(user_id):
+    is_owner = (row["owner_id"] == int(user_id))
+    is_admin = (role == "admin")
+
+    if not (is_owner or is_admin):
         return jsonify(
             {"error": "You do not have permission to update this recipe"}
         ), 403
 
-    # Only if we get here is the user the owner:
+    # Only if we get here is the user the owner or an admin:
     data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "a JSON body is required"}), 400
@@ -172,7 +177,6 @@ def update_recipe(recipe_id):
             {"error": "a recipe with that title already exists"}
         ), 409
 
-    # cur.rowcount should be > 0 here because we already checked row exists
     row = db.execute(
         "SELECT * FROM recipes WHERE id = ?", (recipe_id,)
     ).fetchone()
@@ -196,6 +200,7 @@ def delete_recipe(recipe_id):
         return jsonify({"error": "Invalid or expired token"}), 401
 
     user_id = claims["sub"]
+    role = claims.get("role", "user")  # 👈 new
 
     db = get_db()
     row = db.execute(
@@ -206,7 +211,10 @@ def delete_recipe(recipe_id):
     if row is None:
         return jsonify({"error": "recipe not found"}), 404
 
-    if row["owner_id"] != int(user_id):
+    is_owner = (row["owner_id"] == int(user_id))
+    is_admin = (role == "admin")
+
+    if not (is_owner or is_admin):
         return jsonify(
             {"error": "You do not have permission to delete this recipe"}
         ), 403
@@ -306,6 +314,7 @@ def login():
     payload = {
         "sub": str(user["id"]),               # authenticated user ID from DB
         "username": user["username"],    # optional, still from DB
+        "role": user["role"],  # 👈 new: comes from DB, not from the client
         "exp": datetime.utcnow() + timedelta(hours=1),
     }
 
