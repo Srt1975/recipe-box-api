@@ -27,10 +27,6 @@ def create_app(config_name: str):
     config_class = config_map[config_name]
     app.config.from_object(config_class)
 
-    # for now, ignore config_name except maybe printing it
-    app.config["JWT_SECRET"] = os.getenv("JWT_SECRET")
-    print("JWT_SECRET from env:", repr(app.config["JWT_SECRET"]))
-    
     def get_db():
         if "db" not in g:
             g.db = sqlite3.connect(app.config["DATABASE"])
@@ -246,7 +242,7 @@ def create_app(config_name: str):
             "exp": datetime.utcnow() + timedelta(hours=1),
         }
 
-        token = jwt.encode(payload, app.config["JWT_SECRET"], algorithm="HS256")
+        token = jwt.encode(payload, app.config["JWT_SECRET"], algorithm=app.config["JWT_ALGORITHM"])
         
         return jsonify({
             "token": token,
@@ -275,7 +271,7 @@ def require_auth(f):
             claims = jwt.decode(
                 token,
                 current_app.config["JWT_SECRET"],
-                algorithms=[JWT_ALGORITHM],
+                algorithms=[current_app.config["JWT_ALGORITHM"]],
         )
         except jwt.ExpiredSignatureError:
             return jsonify({"error": "Token has expired.  Please log in again."}), 401
@@ -289,8 +285,6 @@ def require_auth(f):
 
         return f(*args, **kwargs)
     return wrapper
-
-JWT_ALGORITHM = "HS256"  # same as you used when encoding
 
 
 
