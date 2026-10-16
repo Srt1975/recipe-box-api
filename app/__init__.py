@@ -242,7 +242,7 @@ def create_app(config_name: str):
         payload = {
             "sub": str(user["id"]),               # authenticated user ID from DB
             "username": user["username"],    # optional, still from DB
-            "role": user["role"],  # 👈 new: comes from DB, not from the client
+            #"role": user["role"],  # 👈 new: comes from DB, not from the client
             "exp": datetime.utcnow() + timedelta(hours=1),
         }
 
