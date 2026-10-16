@@ -12,18 +12,28 @@ from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, g, jsonify, request, current_app
 from functools import wraps
+from app.config import Config, DevelopmentConfig, ProductionConfig
+
 
 load_dotenv()  # load .env
 
 def create_app(config_name: str):
     app = Flask(__name__)
+    config_map = {
+        "development": DevelopmentConfig,
+        "production": ProductionConfig,
+    }
+
+    config_class = config_map[config_name]
+    app.config.from_object(config_class)
+
     # for now, ignore config_name except maybe printing it
     app.config["JWT_SECRET"] = os.getenv("JWT_SECRET")
     print("JWT_SECRET from env:", repr(app.config["JWT_SECRET"]))
     
     def get_db():
         if "db" not in g:
-            g.db = sqlite3.connect(DATABASE)
+            g.db = sqlite3.connect(app.config["DATABASE"])
             g.db.row_factory = sqlite3.Row
             g.db.execute("PRAGMA foreign_keys = ON")
         return g.db
@@ -41,7 +51,7 @@ def create_app(config_name: str):
             "ingredients": row["ingredients"],
             "instructions": row["instructions"],
             "is_public": bool(row["is_public"]),
-            "owner_id": row["owner_id"]
+            # "owner_id": row["owner_id"],
         }
 
  
@@ -246,7 +256,7 @@ def create_app(config_name: str):
             }
         }), 200
 
-
+    app.get_db = get_db
 
     # probably return app here (temporarily) while we move code
     return app
@@ -281,7 +291,7 @@ def require_auth(f):
     return wrapper
 
 JWT_ALGORITHM = "HS256"  # same as you used when encoding
-DATABASE = "recipes.db"
+
 
 
 
