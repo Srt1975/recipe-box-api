@@ -26,4 +26,9 @@ class ProductionConfig(Config):
    DEBUG = False
    PORT = 5001
    DATABASE = "recipes_prod.db"
+
+class TestingConfig(Config):
+   DEBUG = True
+   PORT = 5001
+   DATABASE = "recipes_test.db"
    

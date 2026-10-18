@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, g, jsonify, request, current_app
 from functools import wraps
-from app.config import Config, DevelopmentConfig, ProductionConfig
+from app.config import Config, DevelopmentConfig, ProductionConfig, TestingConfig
 from app.db import close_db
 from app.routes.auth import auth_bp
 from app.routes.recipes import recipes_bp
@@ -24,6 +24,7 @@ def create_app(config_name: str):
     config_map = {
         "development": DevelopmentConfig,
         "production": ProductionConfig,
+        "testing": TestingConfig
     }
 
     config_class = config_map[config_name]

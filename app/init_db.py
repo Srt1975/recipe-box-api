@@ -1,5 +1,5 @@
 """Create and seed recipes.db. Run once after cloning: python init_db.py"""
-
+from app.db import get_db
 import sqlite3
 from app import create_app # or import get_db via app
 
@@ -39,10 +39,10 @@ SEED = [
         0,
     ),
 ]
-def main():
-    app = create_app("development")
+
+def init_db(app):
     with app.app_context():
-        db = app.get_db()
+        db = get_db()
         db.executescript(SCHEMA)
         existing = db.execute("SELECT COUNT(*) FROM recipes").fetchone()[0]
         if existing == 0:
@@ -55,6 +55,10 @@ def main():
             print(f"Created {app.config['DATABASE']} and seeded {len(SEED)} recipes.")
         else:
             print(f"{app.config['DATABASE']} already has {existing} recipes - nothing to do.")
+
+def main():
+    app = create_app("development")
+    init_db(app)
 
 if __name__ == "__main__":
     main()
