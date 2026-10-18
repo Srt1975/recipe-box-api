@@ -1,12 +1,13 @@
-from flask import Blueprint, request, jsonify, g
-import sqlite3
-from flask import current_app as app
+from flask import Blueprint, jsonify
+from app.db import get_all_recipes_rows
+from app.models import recipe_to_dict
+from app.middleware import require_auth 
 
 recipes_bp = Blueprint("recipes", __name__)
 
 @recipes_bp.get("/recipes")
 def list_recipes():
-    rows = get_db().execute("SELECT * FROM recipes ORDER BY id").fetchall()
+    rows = get_all_recipes_rows()
     return jsonify([recipe_to_dict(r) for r in rows])
 
 

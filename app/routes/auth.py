@@ -2,18 +2,12 @@ from flask import Blueprint, request, jsonify, g  # plus any other imports you n
 from datetime import datetime, timedelta
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
-#from app import get_db
+from app.db import get_db
 from flask import current_app as app
 import jwt
 
 auth_bp = Blueprint("auth", __name__)  # 1) define it first
 
-def get_db():
-    if "db" not in g:
-        g.db = sqlite3.connect(app.config["DATABASE"])
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys = ON")
-    return g.db
 
 @auth_bp.post("/register")
 def register():
