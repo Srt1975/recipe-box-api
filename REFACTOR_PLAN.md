@@ -4,12 +4,24 @@ Total acceptance items: 7
 
 This refactor may change the internal file/module structure, but must not change the public contract: endpoint paths, HTTP methods, status codes, response bodies, authentication behavior, or database-visible effects.
 
-app.py- app start
+Final structure:
+app.py - app entrypoint
+app/__init__.py - app factory and blueprint registration
 app/config.py - config and secrets
-app/db.py - db setup
-app/auth.py - auth
-app/users.py- user routes
-app/recipes.py - recipe routes
+app/db.py - database setup and helpers
+app/models.py - database models
+app/middleware.py - JWT middleware for auth checks
+app/users.py - user helper logic / current-user support
+app/routes/auth.py - auth routes
+app/routes/recipes.py - recipe routes
+app/services/auth.py - password hashing and auth helpers
+app/services/user.py - user lookup and fetch logic
+
+Auth logic now lives in app/middleware.py for JWT validation, app/services/auth.py for password hashing and token-related logic, and app/services/user.py / app/users.py for user lookup and current-user resolution.
+
+GET /me
+request: GET /me with Bearer token
+expected: status 200, response JSON with the current authenticated user
 
 POST /register 
 request: JSON body with name, email, password
@@ -39,5 +51,7 @@ DELETE /recipes/<int:recipe_id>
 request: DELETE /recipes/, valid token (admin or owner)
 expected: status 204, recipe deleted from db
 
+Refactor Results:
+All 7 original acceptance endpoints were re-run after the refactor and still return the same status codes and response shapes as before. The refactor preserved the public contract: endpoint paths, methods, auth behavior, and database-visible effects remained unchanged.
 
 

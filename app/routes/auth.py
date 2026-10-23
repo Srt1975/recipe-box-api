@@ -1,13 +1,26 @@
 from flask import Blueprint, request, jsonify, g  # plus any other imports you need
 from datetime import datetime, timedelta
 import sqlite3
-from werkzeug.security import generate_password_hash, check_password_hash
 from app.db import get_db
 from flask import current_app as app
 import jwt
+from app.services.user import fetch_user
+from app.middleware import require_auth 
+from app.services.auth import hash_password, verify_password
 
 auth_bp = Blueprint("auth", __name__)  # 1) define it first
 
+@auth_bp.get("/me")
+@require_auth
+def me():
+    user = fetch_user(get_db(), g.user_id)
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify({
+        "id": user["id"],
+        "username": user["username"],
+        "email": user["email"]
+    })
 
 @auth_bp.post("/register")
 def register():
@@ -21,7 +34,7 @@ def register():
     if not username or not email or not password:
         return jsonify({"error": "Missing required fields"}), 400
 
-    password_hash = generate_password_hash(password, method="pbkdf2:sha256")
+    password_hash = hash_password(password)
 
     db = get_db()
     try:
@@ -61,7 +74,7 @@ def login():
         # unknown username
         return jsonify({"error": "Invalid credentials"}), 401
 
-    if not check_password_hash(user["password_hash"], password):
+    if not verify_password(user["password_hash"], password):
         # wrong password
         return jsonify({"error": "Invalid credentials"}), 401
 

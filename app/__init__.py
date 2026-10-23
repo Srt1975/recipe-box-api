@@ -4,20 +4,11 @@ A working Flask + SQLite CRUD API for recipes. It stores data perfectly —
 and it trusts everyone. There is no authentication and no authorization yet.
 That is the point: you will add both, lesson by lesson, in Units 2 and 3.
 """
-import os
-import sqlite3
-from datetime import datetime, timedelta
-import jwt
-from dotenv import load_dotenv
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask import Flask, g, jsonify, request, current_app
-from functools import wraps
+from flask import Flask, jsonify
 from app.config import Config, DevelopmentConfig, ProductionConfig, TestingConfig
 from app.db import close_db
 from app.routes.auth import auth_bp
 from app.routes.recipes import recipes_bp
-
-load_dotenv()  # load .env
 
 def create_app(config_name: str):
     app = Flask(__name__)
