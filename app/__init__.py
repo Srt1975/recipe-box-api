@@ -9,6 +9,7 @@ from app.config import Config, DevelopmentConfig, ProductionConfig, TestingConfi
 from app.db import close_db
 from app.routes.auth import auth_bp
 from app.routes.recipes import recipes_bp
+from app.models import db
 
 def create_app(config_name: str):
     app = Flask(__name__)
@@ -21,13 +22,12 @@ def create_app(config_name: str):
     config_class = config_map[config_name]
     app.config.from_object(config_class)
 
+    db.init_app(app)
+
     app.teardown_appcontext(close_db)
     @app.teardown_appcontext
     def teardown_db(exception):
         close_db(exception)
-
-
- 
 
     @app.get("/")
     def hello():
