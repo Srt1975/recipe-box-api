@@ -9,7 +9,7 @@ recipes_bp = Blueprint("recipes", __name__)
 @recipes_bp.get("/recipes")
 def list_recipes():
     db = get_db()
-    rows = get_all_recipes_rows(db)
+    rows = get_all_recipes_rows()
     return jsonify([recipe_to_dict(r) for r in rows])
 
 @recipes_bp.get("/recipes/<int:recipe_id>")
