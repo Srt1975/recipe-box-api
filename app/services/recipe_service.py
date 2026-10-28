@@ -26,8 +26,9 @@ def create_recipe_service(data, user_id):
     try:
         db.session.add(recipe)
         db.session.commit()
-    except Exception:
+    except Exception as e:
         db.session.rollback()
+        print("CREATE RECIPE ERROR:", repr(e))
         return jsonify({"error": "could not create recipe"}), 500
 
     return jsonify(recipe_to_dict_from_model(recipe)), 201
@@ -65,7 +66,7 @@ def delete_recipe_service(recipe_id: int, user_id, role):
     if recipe is None:
         return jsonify({"error": "recipe not found"}), 404
 
-    is_owner = (recipe.owner_id == user_id)
+    is_owner = (recipe.owner.id == int(user_id))
     is_admin = (role == "admin")
 
     if not (is_owner or is_admin):
@@ -85,6 +86,7 @@ def recipe_to_dict_from_model(recipe: Recipe):
     return {
         "id": recipe.id,
         "title": recipe.title,
+        "prep_time_minutes": recipe.prep_time_minutes,
         "ingredients": recipe.ingredients,
         "instructions": recipe.instructions,
         "is_public": bool(recipe.is_public),

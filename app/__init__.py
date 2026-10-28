@@ -6,10 +6,11 @@ That is the point: you will add both, lesson by lesson, in Units 2 and 3.
 """
 from flask import Flask, jsonify
 from app.config import Config, DevelopmentConfig, ProductionConfig, TestingConfig
-from app.db import close_db
 from app.routes.auth import auth_bp
 from app.routes.recipes import recipes_bp
 from app.models import db
+from .extensions import migrate
+
 
 def create_app(config_name: str):
     app = Flask(__name__)
@@ -23,12 +24,8 @@ def create_app(config_name: str):
     app.config.from_object(config_class)
 
     db.init_app(app)
-
-    app.teardown_appcontext(close_db)
-    @app.teardown_appcontext
-    def teardown_db(exception):
-        close_db(exception)
-
+    migrate.init_app(app, db)
+    
     @app.get("/")
     def hello():
         return jsonify({"message": "Recipe Box API", "recipes": "/recipes"})
