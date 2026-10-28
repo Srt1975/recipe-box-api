@@ -2,9 +2,12 @@ from flask import Blueprint, jsonify, request, g
 from app.models import recipe_to_dict
 from app.middleware import require_auth
 from app.services.recipe_service import create_recipe_service, list_recipes_service, get_recipe_service, update_recipe_service, delete_recipe_service 
+from app.extensions import cache
 
 recipes_bp = Blueprint("recipes", __name__)
+
 @recipes_bp.get("/recipes")
+@cache.cached(key_prefix="list_recipes", timeout=30)  # Cache for 30 seconds
 def list_recipes():
     return list_recipes_service()
 

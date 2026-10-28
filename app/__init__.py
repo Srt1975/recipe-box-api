@@ -10,6 +10,7 @@ from app.routes.auth import auth_bp
 from app.routes.recipes import recipes_bp
 from app.models import db
 from .extensions import migrate
+from .extensions import cache
 
 
 def create_app(config_name: str):
@@ -25,6 +26,7 @@ def create_app(config_name: str):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    cache.init_app(app)
     
     @app.get("/")
     def hello():

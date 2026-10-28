@@ -19,7 +19,9 @@ class Config:
 
    if not DATABASE:
        raise ValueError("DATABASE environment variable is not set.")
-
+   
+   CACHE_TYPE = "SimpleCache"  # Use in-memory cache for development
+   CACHE_DEFAULT_TIMEOUT = 30  # Cache timeout in seconds
 
    
 class DevelopmentConfig(Config):
