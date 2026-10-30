@@ -8,6 +8,7 @@ This project has moved beyond the original insecure baseline. The app now stores
 
 - Passwords are hashed with PBKDF2 via Werkzeug before they are stored.
 - The middleware in `app/middleware.py` reads `Authorization: Bearer ...` headers and rejects missing, malformed, or expired tokens with `401`.
+- The auth routes in `app/routes/auth.py` also use per-endpoint rate limiting (`5 per minute`) on `/register` and `/login`.
 - Protected recipe routes use `g.user_id` and `g.role` to enforce access rules.
 - A non-owner cannot patch or delete someone else’s recipe; an admin is allowed to act on other users’ content.
 - Public recipe reads remain available without auth, while write actions require a valid authenticated identity.

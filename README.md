@@ -9,6 +9,7 @@ This repository began as a small Flask + SQLite recipe API and has evolved as th
 
 - User registration and login are implemented through `/register` and `/login`.
 - JWTs are issued for authenticated sessions and checked by the `require_auth` middleware.
+- `/register` and `/login` are rate-limited to 5 requests per minute per client.
 - `GET /me` returns the current authenticated user.
 - Recipe creation, update, and delete actions require a valid bearer token.
 - Ownership and admin checks are enforced in the recipe service layer.
@@ -69,8 +70,8 @@ curl -X POST http://127.0.0.1:5000/recipes \
 
 | Method | Path | Success | Errors |
 |---|---|---|---|
-| POST | /register | 201 | 400 missing body / invalid input |
-| POST | /login | 200 | 400 missing body · 401 bad credentials |
+| POST | /register | 201 | 400 missing body / invalid input · 429 rate limit exceeded |
+| POST | /login | 200 | 400 missing body · 401 bad credentials · 429 rate limit exceeded |
 | GET | /me | 200 | 401 invalid token · 404 user missing |
 | GET | /recipes | 200 | |
 | GET | /recipes/&lt;id&gt; | 200 | 404 |

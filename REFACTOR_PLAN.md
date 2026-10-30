@@ -26,6 +26,7 @@ app/services/recipe_service.py - recipe CRUD, ownership, and admin checks
 - User registration and login are active.
 - Passwords are stored as PBKDF2 hashes.
 - JWT middleware enforces bearer-token authorization for protected routes.
+- `/register` and `/login` each implement per-endpoint rate limiting using Flask-Limiter.
 - `GET /me` returns the current authenticated user.
 - Recipe updates and deletes are restricted to owners or admins.
 

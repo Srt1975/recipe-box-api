@@ -43,10 +43,10 @@ recipe-box-api/
 
 - `app/__init__.py` creates the Flask app and registers the auth and recipe blueprints.
 - `app/config.py` loads config values from the environment and defines the development/production/testing app settings.
-- `app/extensions.py` attaches the cache and migrations helpers.
+- `app/extensions.py` attaches the cache, migrations, and request rate-limiter helpers.
 - `app/models.py` defines the SQLAlchemy `User` and `Recipe` models.
 - `app/middleware.py` validates the bearer token and stores `g.user_id` and `g.role` for protected routes.
-- `app/routes/auth.py` handles `/register`, `/login`, and `/me`.
+- `app/routes/auth.py` handles `/register`, `/login`, and `/me`, and applies per-endpoint rate limiting to the login/register actions.
 - `app/routes/recipes.py` manages the recipe endpoints and protects write actions.
 - `app/services/auth.py` handles password hashing and verification.
 - `app/services/recipe_service.py` contains recipe CRUD logic plus ownership/admin permission checks.
@@ -66,4 +66,4 @@ The login route validates the username and password, then issues a JWT containin
 
 ## Security status
 
-The repository has moved past the original no-auth baseline. Passwords are hashed before being stored, bearer tokens are required for protected actions, and recipe writes are restricted to the owner or admin role. The remaining work is focused on finishing the private-vs-public recipe visibility rules and cleaning up the documentation/startup details still in progress.
+The repository has moved past the original no-auth baseline. Passwords are hashed before being stored, bearer tokens are required for protected actions, recipe writes are restricted to the owner or admin role, and login/register routes use Flask-Limiter throttling to prevent abuse. The remaining work is focused on finishing the private-vs-public recipe visibility rules and cleaning up the documentation/startup details still in progress.
