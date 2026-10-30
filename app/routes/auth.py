@@ -6,6 +6,7 @@ import jwt
 from app.services.user import fetch_user
 from app.middleware import require_auth 
 from app.services.auth import hash_password, verify_password
+from app.extensions import limiter
 
 auth_bp = Blueprint("auth", __name__)  # 1) define it first
 
@@ -22,6 +23,7 @@ def me():
     })
 
 @auth_bp.post("/register")
+@limiter.limit("5 per minute")
 def register():
     data = request.get_json()
     if data is None:
@@ -53,6 +55,7 @@ def register():
     }), 201
 
 @auth_bp.post("/login")
+@limiter.limit("5 per minute")
 def login():
     data = request.get_json()
     if data is None:

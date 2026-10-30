@@ -9,8 +9,8 @@ from app.config import Config, DevelopmentConfig, ProductionConfig, TestingConfi
 from app.routes.auth import auth_bp
 from app.routes.recipes import recipes_bp
 from app.models import db
-from .extensions import migrate
-from .extensions import cache
+from .extensions import migrate, cache, init_limiter
+
 
 
 def create_app(config_name: str):
@@ -27,7 +27,8 @@ def create_app(config_name: str):
     db.init_app(app)
     migrate.init_app(app, db)
     cache.init_app(app)
-    
+    init_limiter(app)
+
     @app.get("/")
     def hello():
         return jsonify({"message": "Recipe Box API", "recipes": "/recipes"})
