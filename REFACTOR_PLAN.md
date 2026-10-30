@@ -1,57 +1,43 @@
 ## REFACTOR_PLAN.md
-Responsibilities: 6
-Total acceptance items: 7
 
-This refactor may change the internal file/module structure, but must not change the public contract: endpoint paths, HTTP methods, status codes, response bodies, authentication behavior, or database-visible effects.
+Status: in progress
 
-Final structure:
-app.py - app entrypoint
-app/__init__.py - app factory and blueprint registration
-app/config.py - config and secrets
-app/db.py - database setup and helpers
-app/models.py - database models
-app/middleware.py - JWT middleware for auth checks
-app/users.py - user helper logic / current-user support
-app/routes/auth.py - auth routes
-app/routes/recipes.py - recipe routes
-app/services/auth.py - password hashing and auth helpers
-app/services/user.py - user lookup and fetch logic
+This repository has moved beyond the original no-auth baseline and is now working through the lessons on JWT authentication, authorization, and protected route handling. The refactor goal remains to keep the public recipe API stable while improving security and code structure behind the scenes.
 
-Auth logic now lives in app/middleware.py for JWT validation, app/services/auth.py for password hashing and token-related logic, and app/services/user.py / app/users.py for user lookup and current-user resolution.
+## Current structure
 
-GET /me
-request: GET /me with Bearer token
-expected: status 200, response JSON with the current authenticated user
+```text
+app/__init__.py          - application factory and blueprint registration
+app/config.py            - environment-driven settings and JWT configuration
+app/extensions.py        - cache and migration extensions
+app/models.py            - SQLAlchemy models for users and recipes
+app/middleware.py        - JWT auth guard and g.user_id / g.role injection
+app/users.py             - lightweight user lookup helpers
+app/routes/auth.py       - register, login, and /me routes
+app/routes/recipes.py   - public recipe endpoints plus protected writes
+app/services/auth.py     - password hashing and verification
+app/services/user.py     - user-fetch helper functions
+app/services/recipe_service.py - recipe CRUD, ownership, and admin checks
+```
 
-POST /register 
-request: JSON body with name, email, password
-expected: status 201 (created), db contains new user including password hash 
+## Completed work
 
-POST /login 
-request: JSON body with valid username and password 
-expected: status 200, response JSON with valid token
+- Application factory and blueprint wiring are in place.
+- User registration and login are active.
+- Passwords are stored as PBKDF2 hashes.
+- JWT middleware enforces bearer-token authorization for protected routes.
+- `GET /me` returns the current authenticated user.
+- Recipe updates and deletes are restricted to owners or admins.
 
-POST /recipes (create) 
-request: JSON body with recipe fields, valid token(for ownership) 
-expected: status 201(created), db contains new recipe
+## Still in progress
 
-GET /recipes (list)
-request: GET /recipes (no auth required)
-expected: status 200, response JSON list of all recipes
+- Finalize the `is_public` privacy rules for private recipe visibility.
+- Tighten startup and environment documentation around `.env` and app-factory usage.
+- Continue cleaning up migration-era or transitional files so the repo reflects a single consistent implementation.
+- Confirm and document final authorization behavior across all recipe routes.
 
-GET /recipes/<int:recipe_id>
-request: GET /recipes/<id> (no auth required)
-expected: status 200, response JSON recipe if it exists, 404 in not exists
+## Acceptance direction
 
-PATCH /recipes (update)
-request: PATCH /recipes, JSON body with fields to update, valid token (admin or owner)
-expected: status 200, response JSON recipe with updated fields, db recipe updated
-
-DELETE /recipes/<int:recipe_id>
-request: DELETE /recipes/, valid token (admin or owner)
-expected: status 204, recipe deleted from db
-
-Refactor Results:
-All 7 original acceptance endpoints were re-run after the refactor and still return the same status codes and response shapes as before. The refactor preserved the public contract: endpoint paths, methods, auth behavior, and database-visible effects remained unchanged.
+The app is expected to preserve the original public recipe endpoints while adding stronger security for write actions. The current focus is on authenticated identity, role checks, and ownership validation rather than changing the basic recipe contract itself.
 
 
