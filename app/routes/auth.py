@@ -23,10 +23,22 @@ def me():
 
 @auth_bp.post("/register")
 def register():
+    data = request.get_json()
+    if data is None:
+        return jsonify({"error": "Missing JSON body"}), 400
+
+    username = (data.get("username") or "").strip()
+    email = (data.get("email") or "").strip()
+    password = (data.get("password") or "").strip()
+    password_hash = hash_password(password)
+
+    if not username or not email or not password:
+        return jsonify({"error": "Missing required fields"}), 400
+
     user = User(
         username=username,
         email=email,
-        password_hash=hash_password
+        password_hash=password_hash
     )
     try:
         db.session.add(user)

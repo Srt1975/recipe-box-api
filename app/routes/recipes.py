@@ -19,7 +19,9 @@ def get_recipe(recipe_id):
 @require_auth
 def create_recipe():
     data = request.get_json(silent=True)
-    return create_recipe_service(data, g.user_id)
+    response = create_recipe_service(data, g.user_id)
+    cache.delete("list_recipes")  # Invalidate the cache for the list of recipes
+    return response
 
 @recipes_bp.patch("/recipes/<int:recipe_id>")
 @require_auth
