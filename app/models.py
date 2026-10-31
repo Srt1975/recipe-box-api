@@ -10,7 +10,9 @@ class User(db.Model):
     email = db.Column(db.String, nullable=False, unique=True)
     password_hash = db.Column(db.String, nullable=False)
     recipes = db.relationship("Recipe", back_populates="owner")
+    ratings = db.relationship("Rating", back_populates="user")
 
+    
 class Recipe(db.Model):
     __tablename__ = "recipes"
 
@@ -22,7 +24,18 @@ class Recipe(db.Model):
     is_public = db.Column(db.Boolean, nullable=False, default=True)
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     owner = db.relationship("User", back_populates="recipes")
-    
+    ratings = db.relationship("Rating", back_populates="recipe")
+
+class Rating(db.Model):
+    __tablename__ = "ratings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    recipe_id = db.Column(db.Integer, db.ForeignKey("recipes.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    score = db.Column(db.Integer, nullable=False)  # Assuming rating is an integer value
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    user = db.relationship("User", back_populates="ratings")
+    recipe = db.relationship("Recipe", back_populates="ratings")
 
 def recipe_to_dict(row):
     return {

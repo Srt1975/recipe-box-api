@@ -1,5 +1,6 @@
 from flask import jsonify
-from app.models import db, Recipe
+from app.models import Rating, db, Recipe
+from app.extensions import cache
 
 def list_recipes_service():
     recipes = Recipe.query.order_by(Recipe.id).all()
@@ -78,9 +79,37 @@ def delete_recipe_service(recipe_id: int, user_id, role):
     except Exception:
         db.session.rollback()
         return jsonify({"error": "could not delete recipe"}), 500
-
+    cache.delete(f"recipe_rating_summary:{recipe_id}")  # Invalidate the cache for this recipe's rating summary
     return jsonify({"message": "recipe deleted successfully"}), 200
 
+def get_rating_summary_service(recipe_id: int):
+    ratings = Rating.query.filter_by(recipe_id=recipe_id).all()
+    if not ratings:
+        return None, 0  # No ratings found
+    count = len(ratings)
+    average_score = sum(r.score for r in ratings) / count
+    return average_score, count
+    # returns (average_score: float or None, count: int)
+
+def create_rating_service(recipe_id: int, user_id: int, score: int):
+    recipe = Recipe.query.filter_by(id=recipe_id).first()
+    if recipe is None:
+        raise ValueError("Recipe not found")
+    if score < 1 or score > 5:
+        raise ValueError("Score must be between 1 and 5")
+    existing = Rating.query.filter_by(recipe_id=recipe_id, user_id=user_id).first()
+    if existing:
+        raise ValueError("User has already rated this recipe")
+    rating = Rating(recipe_id=recipe_id, user_id=user_id, score=score)
+    try:
+        db.session.add(rating)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print("Could not create rating"), repr(e)
+        raise ValueError("Could not create rating")
+    
+    return rating
 
 def recipe_to_dict_from_model(recipe: Recipe):
     return {
