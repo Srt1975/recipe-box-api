@@ -8,4 +8,8 @@ Observation: total time grows roughly with the number of sequential calls.
 
 Threaded calls 
 
-Time taken: 1.0493 seconds for (3 ingredients)
+synchronous 3× HTTP calls:      1.0493 
+threaded 3× HTTP calls:         0.037944958
+async concurrent 3× HTTP calls: 0.004551333000000005
+
+We set a 1.0s per‑call timeout so the script stays responsive, trading away any slow responses that would have arrived after 1s.

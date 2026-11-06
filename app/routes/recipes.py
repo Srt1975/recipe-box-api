@@ -3,9 +3,24 @@ from app.models import Recipe, recipe_to_dict
 from app.middleware import require_auth
 from app.services.recipe_service import create_rating_service, create_recipe_service, get_rating_summary_service, list_recipes_service, get_recipe_service, update_recipe_service, delete_recipe_service 
 from app.extensions import cache
+import httpx, asyncio
 
 recipes_bp = Blueprint("recipes", __name__)
 
+@recipes_bp.route("/recipes/slow-test")
+async def slow_test():
+    async with httpx.AsyncClient() as client:
+        eggs = client.get("http://127.0.0.1:5002/nutrition/eggs")
+        tomatoes = client.get("http://127.0.0.1:5002/nutrition/tomatoes")
+        onion = client.get("http://127.0.0.1:5002/nutrition/onion")
+
+        responses = await asyncio.gather(eggs, tomatoes, onion)
+
+    return jsonify(
+        {
+            "statuses": [resp.status_code for resp in responses],
+        }
+    )
 @recipes_bp.get("/recipes")
 @cache.cached(key_prefix="list_recipes", timeout=30)  # Cache for 30 seconds
 def list_recipes():

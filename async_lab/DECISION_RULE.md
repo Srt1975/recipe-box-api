@@ -1,4 +1,4 @@
-# Execution Model Decision Rule (DRAFT)
+# Execution Model Decision Rule 
 
 ## 1. When to use simple synchronous I/O
 
@@ -19,9 +19,13 @@
 - When there are *many* concurrent I/O operations (more than is comfortable with threads).
 - When I need high scalability and tighter control over concurrency.
 - When I’m willing to trade simplicity for performance and scalability.
+- For multiple independent, I/O-bound HTTP calls to the same or different services, I will favor `asyncio` with `httpx.AsyncClient` and `asyncio.gather()`. My measurements show a clear speedup vs sequential sync and improved time vs threads, with fewer OS threads.
+
 
 ## 4. When to use processes for CPU-bound work (concept only)
 
 - When the workload is CPU-bound and I need to use multiple cores.
 - When threads don’t speed things up because of the GIL.
 - When the overhead of extra processes is worth the CPU parallelism.
+
+

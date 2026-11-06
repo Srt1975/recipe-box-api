@@ -3,3 +3,4 @@ Flask-SQLAlchemy
 flask-migrate
 Flask-Caching
 Flask-Limiter
+flask[async]

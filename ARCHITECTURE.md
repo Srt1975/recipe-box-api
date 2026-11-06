@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository is being evolved from the original recipe-only course skeleton into a layered Flask API with JWT-based authentication and authorization. The app now uses an application factory in `app/__init__.py`, route blueprints for auth and recipes, a middleware guard for bearer-token validation, and service logic for the recipe access rules.
+This repository is a Flask API built around an application factory and layered request flow. The current codebase includes user registration/login, JWT validation, protected recipe actions, rating support, and lightweight caching/rate limiting. It is no longer a no-auth recipe skeleton; it is a working mid-course API with a few incomplete pieces still in progress.
 
 ## Current project structure
 
@@ -11,8 +11,6 @@ recipe-box-api/
 ├── app.py
 ├── wsgi.py
 ├── print_configs.py
-├── .env
-├── .env.example
 ├── requirements.txt
 ├── README.md
 ├── ARCHITECTURE.md
@@ -33,37 +31,74 @@ recipe-box-api/
 │   │   ├── recipe_service.py
 │   │   └── user.py
 │   └── init_db.py
+├── async_lab/
 ├── migrations/
 ├── postman/
-├── recipes.db
 ├── recipes_dev.db
 ├── recipes_test.db
-└── test_*.py
+├── recipes.db
+├── test_*.py
+└── .env / .env.example
 ```
 
-- `app/__init__.py` creates the Flask app and registers the auth and recipe blueprints.
-- `app/config.py` loads config values from the environment and defines the development/production/testing app settings.
-- `app/extensions.py` attaches the cache, migrations, and request rate-limiter helpers.
-- `app/models.py` defines the SQLAlchemy `User` and `Recipe` models.
+- `app/__init__.py` creates the Flask app, loads the selected config, initializes SQLAlchemy, migrations, cache, and rate limiting, then registers the auth and recipe blueprints.
+- `app/config.py` reads environment values and defines development, production, and testing app settings.
+- `app/extensions.py` initializes the Flask-Limiter instance and the cache object.
+- `app/models.py` defines the SQLAlchemy models for `User`, `Recipe`, and `Rating`.
 - `app/middleware.py` validates the bearer token and stores `g.user_id` and `g.role` for protected routes.
-- `app/routes/auth.py` handles `/register`, `/login`, and `/me`, and applies per-endpoint rate limiting to the login/register actions.
-- `app/routes/recipes.py` manages the recipe endpoints and protects write actions.
-- `app/services/auth.py` handles password hashing and verification.
-- `app/services/recipe_service.py` contains recipe CRUD logic plus ownership/admin permission checks.
-- `app/users.py` provides simple user lookup helpers.
+- `app/routes/auth.py` handles `/register`, `/login`, and `/me`, and applies per-endpoint rate limiting.
+- `app/routes/recipes.py` handles recipe CRUD, rating creation, and rating-summary reads.
+- `app/services/auth.py` provides password hashing and verification.
+- `app/services/recipe_service.py` contains the recipe business logic, authorization checks, and rating operations.
+- `app/users.py` provides user lookup helpers used by the app.
 
 ## Layering
 
-- Routes: request parsing, response formatting, and HTTP status handling. The route files are intentionally thin and delegate business rules to services.
-- Services: business rules and authorization checks. Recipe updates/deletes are approved only when the current user is the owner or an admin.
-- Data: database model definitions and the SQLAlchemy session used for persistence.
+- Routes: request parsing, validation, JSON responses, HTTP status handling, and cache invalidation.
+- Services: business rules such as creation, updates, ownership checks, and rating validation.
+- Models/data: SQLAlchemy models and persistence through the Flask-SQLAlchemy session.
+- Middleware: bearer-token validation and request-context population for authenticated endpoints.
 
 ## Authentication flow
 
-The login route validates the username and password, then issues a JWT containing the authenticated user identifier and expiry. The token is then decoded in `require_auth`, which reads the `Authorization: Bearer ...` header and either populates `g.user_id` / `g.role` or returns `401` when the token is missing, malformed, or expired.
+The current auth flow is:
 
-`GET /me` reads the current user ID from the validated request context and returns the authenticated profile. This is additive to the original recipe endpoints and is part of the current lessons on JWT-based identity.
+1. `POST /register` validates the incoming JSON payload, hashes the password, and creates a new user.
+2. `POST /login` validates the username/password pair and issues a JWT with the current user ID and expiry.
+3. `require_auth` reads the `Authorization: Bearer ...` header, decodes the token, and stores `g.user_id` and `g.role` on the Flask request context.
+4. `GET /me` reads the current user from `g.user_id` and returns the authenticated profile.
+
+The JWT payload currently includes the user ID (as `sub`) and username, plus an expiry timestamp. The `role` claim is optional and defaults to `"user"` when it is absent. In other words, the app is prepared for role-based checks, but the login flow itself does not yet mint an `admin` role for normal users.
+
+## Authorization and recipe rules
+
+The current write rules are enforced in the service layer:
+
+- recipe creation requires a valid auth token
+- recipe updates require a valid auth token and a matching `owner_id`, or a token with `role == "admin"`
+- recipe deletion follows the same owner/admin check
+- users can rate a recipe once per recipe using a score between 1 and 5
+
+The `Recipe` model includes an `is_public` column and the create/update flow accepts an `is_public` field, but the visibility enforcement is not yet complete. In the current implementation, the list and detail endpoints do not filter recipes by public/private visibility; they simply return the stored rows. This is still one of the remaining in-progress items.
+
+## Rating and caching behavior
+
+The API also includes rating support:
+
+- `POST /recipes/<id>/ratings` creates a new rating for the current user
+- `GET /recipes/<id>/rating-summary` returns the average score and count
+- recipe-list and rating-summary responses are cached for short intervals to reduce repeated reads
+
+These features are implemented and working as part of the current codebase, even though the private/public visibility work is still pending.
 
 ## Security status
 
-The repository has moved past the original no-auth baseline. Passwords are hashed before being stored, bearer tokens are required for protected actions, recipe writes are restricted to the owner or admin role, and login/register routes use Flask-Limiter throttling to prevent abuse. The remaining work is focused on finishing the private-vs-public recipe visibility rules and cleaning up the documentation/startup details still in progress.
+The repository has moved well beyond the original no-auth baseline. Current protections include:
+
+- password hashing before storage
+- bearer-token required for protected routes
+- role-aware permission checks in the service layer
+- per-endpoint rate limiting on register/login
+- guarded JWT decoding and expiry handling
+
+The remaining work is focused on completing the public/private recipe visibility rules, tightening login-side role assignment, and cleaning up any startup/documentation gaps that are still present.

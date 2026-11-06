@@ -34,7 +34,7 @@ pip install PyJWT python-dotenv
 3. Run the app using the Flask application factory:
 
 ```bash
-flask --app 'app:create_app("development")' run
+flask --app 'app:create_app("development")' run --port 5001
 ```
 
 You can also do this with the environment variable pattern:
