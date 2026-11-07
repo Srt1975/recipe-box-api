@@ -14,13 +14,22 @@ async def slow_test():
         tomatoes = client.get("http://127.0.0.1:5002/nutrition/tomatoes")
         onion = client.get("http://127.0.0.1:5002/nutrition/onion")
 
-        responses = await asyncio.gather(eggs, tomatoes, onion)
+        try:
+            responses = await asyncio.wait_for(asyncio.gather(eggs, tomatoes, onion), timeout=1.0)
+
+        except asyncio.TimeoutError:
+            return jsonify({"error": "Request timed out"}), 504
+        except httpx.RequestError:
+            return jsonify({"error": "One or more services are unreachable"}), 503
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     return jsonify(
         {
             "statuses": [resp.status_code for resp in responses],
         }
     )
+
 @recipes_bp.get("/recipes")
 @cache.cached(key_prefix="list_recipes", timeout=30)  # Cache for 30 seconds
 def list_recipes():
